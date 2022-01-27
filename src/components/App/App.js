@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import { useState, useEffect } from "react";
 import { ToastContainer, Zoom, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "react-loader-spinner/dist/loader/css/react-spinner-loader.css";
@@ -10,120 +10,99 @@ import { Button } from "../Button/Button";
 import { Modal } from "../Modal/Modal";
 import { Container, Wrapper } from "./App.styled";
 
-export class App extends Component {
-  state = {
-    searchQuery: "",
-    page: 1,
-    imageCards: [],
-    loading: false,
-    showModal: false,
-    largeImage: "",
-    error: null,
-    totalPages: null,
-  };
+export const App = () => {
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [imageCards, setImageCards] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImage, setLargeImage] = useState("");
+  const [error, setError] = useState(null);
+  const [totalPages, setTotalPages] = useState(null);
 
-  componentDidUpdate(prevProps, prevState) {
-    const prevName = prevState.searchQuery;
-    const nextName = this.state.searchQuery;
-
-    if (prevName !== nextName) {
-      this.fetchImages();
+  useEffect(() => {
+    if (!query) {
+      return;
     }
-  }
-
-  handleFofmSubmit = (searchQuery) => {
-    return this.setState({ searchQuery, page: 1, imageCards: [] });
-  };
-
-  fetchImages = async () => {
-    const { searchQuery, page } = this.state;
-
-    try {
-      this.toggleLoader(true);
-      const data = await apiServices({ searchQuery, page });
-      if (data.hits.length === 0) {
-        toast.warn("Nothing found with your search query");
-        this.setState({ loading: false, totalPages: null });
-
-        return;
+    const fetchImages = async () => {
+      try {
+        toggleLoader(true);
+        const data = await apiServices(query, page);
+        if (data.hits.length === 0) {
+          toast.warn("Nothing found with your search query");
+          setLoading(false);
+          setTotalPages(null);
+          return;
+        }
+        setImageCards((imageCards) => [...imageCards, ...data.hits]);
+        const totalHits = data.totalHits;
+        setTotalPages(Math.ceil(totalHits / 12));
+      } catch (error) {
+        console.log(error);
+        setError(error.message);
+      } finally {
+        toggleLoader(false);
       }
+    };
 
-      this.setState((prevState) => ({
-        imageCards: [...prevState.imageCards, ...data.hits],
-        totalPages: Math.ceil(data.totalHits / 12),
-        page: prevState.page + 1,
-      }));
-    } catch (error) {
-      console.log(error);
-      this.setState({ error: error.message });
-    } finally {
-      this.toggleLoader(false);
-    }
+    fetchImages();
+  }, [query, page]);
+
+  const handleFofmSubmit = (searchQuery) => {
+    setQuery(searchQuery);
+    setPage((prevPage) => prevPage + 1);
+    setImageCards([]);
   };
 
-  setModalImage = (imageLink) => {
-    return this.setState((prevState) => ({ largeImage: imageLink }));
+  const setModalImage = (imageLink) => {
+    return setLargeImage(imageLink);
   };
 
-  openLargeImage = (imageLink) => {
-    this.setModalImage(imageLink);
-    this.toggleModal();
+  const openLargeImage = (imageLink) => {
+    setModalImage(imageLink);
+    toggleModal();
   };
 
-  handleOnClick = () => {
-    this.toggleLoader(true);
-    this.fetchImages();
+  const handleOnClick = () => {
+    toggleLoader(true);
+    setPage((prevPage) => prevPage + 1);
   };
 
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
+  const toggleModal = () => {
+    setShowModal(!showModal);
   };
 
-  toggleLoader = (boolean) => {
-    this.setState(({ loading }) => ({ loading: boolean }));
+  const toggleLoader = (boolean) => {
+    setLoading(boolean);
   };
 
-  render() {
-    const {
-      imageCards,
-      totalPages,
-      loading,
-      error,
-      page,
-      showModal,
-      largeImage,
-    } = this.state;
-
-    return (
-      <Container>
-        <Searchbar onSubmit={this.handleFofmSubmit} />
-        {totalPages > 0 && !error && (
-          <>
-            <ImageGallery
-              imageCards={imageCards}
-              onClick={this.toggleModal}
-              modalOpen={this.openLargeImage}
-            />
-            {totalPages > 1 && totalPages !== page - 1 && !loading && (
-              <Button onClick={this.handleOnClick} />
-            )}
-          </>
-        )}
-        {showModal && (
-          <Modal onClose={this.toggleModal}>
-            <img src={largeImage} alt="largeImage" />
-          </Modal>
-        )}
-        {loading && (
-          <Wrapper>
-            <Grid heigth="80" width="80" color="#303f9f" ariaLabel="loading" />
-          </Wrapper>
-        )}
-        {error && <h3 className="Message">Oops, please try again</h3>}
-        <ToastContainer limit={3} autoClose={2000} transition={Zoom} />
-      </Container>
-    );
-  }
-}
-
-export default App;
+  return (
+    <Container>
+      <Searchbar onSubmit={handleFofmSubmit} />
+      {totalPages > 0 && !error && (
+        <>
+          <ImageGallery
+            imageCards={imageCards}
+            onClick={toggleModal}
+            modalOpen={openLargeImage}
+          />
+          {totalPages > 1 && page !== totalPages && !loading && (
+            <Button onClick={handleOnClick} />
+          )}
+        </>
+      )}
+      {showModal && (
+        <Modal onClose={toggleModal}>
+          <img src={largeImage} alt="largeImage" />
+        </Modal>
+      )}
+      {loading && (
+        <Wrapper>
+          <Grid heigth="80" width="80" color="#303f9f" ariaLabel="loading" />
+        </Wrapper>
+      )}
+      {error && <h3 className="Message">Oops, please try again</h3>}
+      <ToastContainer limit={3} autoClose={2000} transition={Zoom} />
+    </Container>
+  );
+};
