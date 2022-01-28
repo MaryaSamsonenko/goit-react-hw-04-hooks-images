@@ -49,7 +49,11 @@ export const App = () => {
   }, [query, page]);
 
   const handleFofmSubmit = (searchQuery) => {
-    setQuery(searchQuery);
+    if (searchQuery.trim() === "") {
+      toast.info("Enter your search query");
+      return;
+    }
+    setQuery(searchQuery.toLowerCase());
     setPage((prevPage) => prevPage + 1);
     setImageCards([]);
   };
