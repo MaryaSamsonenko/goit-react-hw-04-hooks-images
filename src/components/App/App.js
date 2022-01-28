@@ -34,6 +34,7 @@ export const App = () => {
           setTotalPages(null);
           return;
         }
+
         setImageCards((imageCards) => [...imageCards, ...data.hits]);
         const totalHits = data.totalHits;
         setTotalPages(Math.ceil(totalHits / 12));
@@ -52,6 +53,10 @@ export const App = () => {
     if (searchQuery.trim() === "") {
       toast.info("Enter your search query");
       return;
+    }
+
+    if (searchQuery !== query) {
+      setPage(0);
     }
     setQuery(searchQuery.toLowerCase());
     setPage((prevPage) => prevPage + 1);
